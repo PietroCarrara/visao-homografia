@@ -1,25 +1,55 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from math import floor
 
+# A matrix de homografia que montamos possui oito números que temos que descobrir, e um que é constante,
+# totalizando 9 elementos em uma matriz 3x3.
+# Para calcular esses 8 elementos, vamos montar um sistema com 8 equações; por isso precisamos de quatro pontos
+# da imagem (cada ponto possui 2 coordenadas, totalizando 4*2 = 8 números que usaremos nas equações)
+def make_matrix(src, dst):
+    assert len(src) == 4, "forneça exatamente 4 pontos"
+    assert len(src) == len(dst), "src e dst devem ter o mesmo tamanho"
 
-def get_homography_matrix(source, destination):
-    assert len(source) == 4, "must provide more than 4 source points"
-    assert len(source) == len(destination), "source and destination must be of equal length"
+    (s1x, s1y), (s2x, s2y), (s3x, s3y), (s4x, s4y) = src
+    (d1x, d1y), (d2x, d2y), (d3x, d3y), (d4x, d4y) = dst
 
-    N = len(source)
-    A = []
-    b = []
-    for i in range(N):
-        s_x, s_y = source[i]
-        d_x, d_y = destination[i]
-        A.append([s_x, s_y, 1, 0, 0, 0, (-d_x)*(s_x), (-d_x)*(s_y)])
-        A.append([0, 0, 0, s_x, s_y, 1, (-d_y)*(s_x), (-d_y)*(s_y)])
-        b += [d_x, d_y]
-    A = np.array(A)
-    h = np.linalg.lstsq(A, b, rcond=None)[0]
-    h = np.concatenate((h, [1]), axis=-1)
-    return np.reshape(h, (3, 3))
+    A = np.array([
+        [s1x, s1y, 1, 0  , 0  , 0, -d1x*s1x, -d1x*s1y],
+        [0  , 0  , 0, s1x, s1y, 1, -d1y*s1x, -d1y*s1y],
+        [s2x, s2y, 1, 0  , 0  , 0, -d2x*s2x, -d2x*s2y],
+        [0  , 0  , 0, s2x, s2y, 1, -d2y*s2x, -d2y*s2y],
+        [s3x, s3y, 1, 0  , 0  , 0, -d3x*s3x, -d3x*s3y],
+        [0  , 0  , 0, s3x, s3y, 1, -d3y*s3x, -d3y*s3y],
+        [s4x, s4y, 1, 0  , 0  , 0, -d4x*s4x, -d4x*s4y],
+        [0  , 0  , 0, s4x, s4y, 1, -d4y*s4x, -d4y*s4y]
+    ])
+    b = [d1x, d1y, d2x, d2y, d3x, d3y, d4x, d4y]
+
+    (h11, h21, h31, h12, h22, h32, h13, h23) = np.linalg.lstsq(A, b, rcond=None)[0]
+    return np.array([
+        [h11, h21, h31],
+        [h12, h22, h32],
+        [h13, h23, 1],
+    ])
+
+# Aproxima um pixel via nearest-neighbour
+def get_pixel(img, x: float, y: float):
+    x = floor(x)
+    y = floor(y)
+
+    return img[y, x]
+
+# Aplica transformação vinda de uma imagem "source" para uma imagem "destination"
+def apply_matrix(src, dst, matrix):
+    H, W, _ = dst.shape
+
+    for y in range(0, H):
+        for x in range(0, W):
+            px, py, pw = np.matmul(matrix, np.array([x, y, 1]))
+            # A transformação pode resultar em posições com casas decimais.
+            # Usamos interpolação para calcular os pixeis em posições não-discretas
+            dst[y, x] = get_pixel(src, px/pw, py/pw)
 
 if __name__ == "__main__":
     out_w = 2048
@@ -45,8 +75,13 @@ if __name__ == "__main__":
         # cv2.putText(source_image, str(i+1), (pts[0] + 15, pts[1]), cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 0), 5)
         cv2.circle(source_image, pts, 10, (0, 0, 255), 20)
 
-    h = get_homography_matrix(source_points, destination_points)
-    destination_image = cv2.warpPerspective(t_source_image, h, (out_w, out_h))
+    # Calcula a transformação
+    h = make_matrix(source_points, destination_points)
+    h = np.linalg.inv(h)
+
+    # Cria uma nova imagem, onde escrevemos o resultado
+    dst = np.zeros([out_h, out_w, 3], dtype=np.uint8)
+    apply_matrix(t_source_image, dst, h)
 
     figure = plt.figure(figsize=(12, 6))
 
@@ -56,7 +91,7 @@ if __name__ == "__main__":
 
     subplot2 = figure.add_subplot(1, 2, 2)
     subplot2.title.set_text("Destination Image")
-    subplot2.imshow(cv2.cvtColor(destination_image, cv2.COLOR_BGR2RGB))
+    subplot2.imshow(cv2.cvtColor(dst, cv2.COLOR_BGR2RGB))
 
     # plt.show()
     plt.savefig("output.png")

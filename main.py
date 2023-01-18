@@ -14,6 +14,7 @@ def make_matrix(src, dst):
     (s1x, s1y), (s2x, s2y), (s3x, s3y), (s4x, s4y) = src
     (d1x, d1y), (d2x, d2y), (d3x, d3y), (d4x, d4y) = dst
 
+    # As oito equações em forma de equação linear (https://en.wikipedia.org/wiki/Matrix_(mathematics)#Linear_equations)
     A = np.array([
         [s1x, s1y, 1, 0  , 0  , 0, -d1x*s1x, -d1x*s1y],
         [0  , 0  , 0, s1x, s1y, 1, -d1y*s1x, -d1y*s1y],
@@ -38,6 +39,11 @@ def get_pixel(img, x: float, y: float):
     x = floor(x)
     y = floor(y)
 
+    # Testa se o pixel pedido existe
+    ny, nx, _ = img.shape
+    if x >= nx or y >= ny or x < 0 or y < 0:
+        return [0, 0, 0]
+
     return img[y, x]
 
 # Aplica transformação vinda de uma imagem "source" para uma imagem "destination"
@@ -53,48 +59,12 @@ def apply_matrix(src, dst, matrix):
 
 
 def warp(source_image, source_points, destination_points, out_w, out_h):
-    # out_w = 2048
-    # out_h = 1536
-
-    # source_points = np.array([
-    #     [836,  1070],
-    #     [2652,  665],
-    #     [ 799, 2465],
-    #     [2836, 2460]
-    # ])
-    # destination_points = np.array([
-    #     [0, 0],
-    #     [out_w, 0],
-    #     [0, out_h],
-    #     [out_w, out_h]
-    # ])
-    # source_image = cv2.imread("foto1_cap1.jpg")
-    t_source_image = source_image.copy()
-
-    # draw markings on the source image
-    for i, pts in enumerate(source_points):
-        # cv2.putText(source_image, str(i+1), (pts[0] + 15, pts[1]), cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 0), 5)
-        cv2.circle(source_image, pts, 10, (0, 0, 255), 20)
-
     # Calcula a transformação
     h = make_matrix(source_points, destination_points)
     h = np.linalg.inv(h)
 
     # Cria uma nova imagem, onde escrevemos o resultado
     dst = np.zeros([out_h, out_w, 3], dtype=np.uint8)
-    apply_matrix(t_source_image, dst, h)
+    apply_matrix(source_image, dst, h)
 
     return dst
-
-    figure = plt.figure(figsize=(12, 6))
-
-    subplot1 = figure.add_subplot(1, 2, 1)
-    subplot1.title.set_text("Source Image")
-    subplot1.imshow(cv2.cvtColor(source_image, cv2.COLOR_BGR2RGB))
-
-    subplot2 = figure.add_subplot(1, 2, 2)
-    subplot2.title.set_text("Destination Image")
-    subplot2.imshow(cv2.cvtColor(dst, cv2.COLOR_BGR2RGB))
-
-    # plt.show()
-    # plt.savefig("output.png")

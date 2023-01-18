@@ -51,23 +51,24 @@ def apply_matrix(src, dst, matrix):
             # Usamos interpolação para calcular os pixeis em posições não-discretas
             dst[y, x] = get_pixel(src, px/pw, py/pw)
 
-if __name__ == "__main__":
-    out_w = 2048
-    out_h = 1536
 
-    source_points = np.array([
-        [836,  1070],
-        [2652,  665],
-        [ 799, 2465],
-        [2836, 2460]
-    ])
-    destination_points = np.array([
-        [0, 0],
-        [out_w, 0],
-        [0, out_h],
-        [out_w, out_h]
-    ])
-    source_image = cv2.imread("foto1_cap1.jpg")
+def warp(source_image, source_points, destination_points, out_w, out_h):
+    # out_w = 2048
+    # out_h = 1536
+
+    # source_points = np.array([
+    #     [836,  1070],
+    #     [2652,  665],
+    #     [ 799, 2465],
+    #     [2836, 2460]
+    # ])
+    # destination_points = np.array([
+    #     [0, 0],
+    #     [out_w, 0],
+    #     [0, out_h],
+    #     [out_w, out_h]
+    # ])
+    # source_image = cv2.imread("foto1_cap1.jpg")
     t_source_image = source_image.copy()
 
     # draw markings on the source image
@@ -83,6 +84,8 @@ if __name__ == "__main__":
     dst = np.zeros([out_h, out_w, 3], dtype=np.uint8)
     apply_matrix(t_source_image, dst, h)
 
+    return dst
+
     figure = plt.figure(figsize=(12, 6))
 
     subplot1 = figure.add_subplot(1, 2, 1)
@@ -94,4 +97,4 @@ if __name__ == "__main__":
     subplot2.imshow(cv2.cvtColor(dst, cv2.COLOR_BGR2RGB))
 
     # plt.show()
-    plt.savefig("output.png")
+    # plt.savefig("output.png")

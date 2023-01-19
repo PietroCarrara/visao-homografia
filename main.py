@@ -16,22 +16,24 @@ def make_matrix(src, dst):
 
     # As oito equações em forma de equação linear (https://en.wikipedia.org/wiki/Matrix_(mathematics)#Linear_equations)
     A = np.array([
-        [s1x, s1y, 1, 0  , 0  , 0, -d1x*s1x, -d1x*s1y],
-        [0  , 0  , 0, s1x, s1y, 1, -d1y*s1x, -d1y*s1y],
-        [s2x, s2y, 1, 0  , 0  , 0, -d2x*s2x, -d2x*s2y],
-        [0  , 0  , 0, s2x, s2y, 1, -d2y*s2x, -d2y*s2y],
-        [s3x, s3y, 1, 0  , 0  , 0, -d3x*s3x, -d3x*s3y],
-        [0  , 0  , 0, s3x, s3y, 1, -d3y*s3x, -d3y*s3y],
-        [s4x, s4y, 1, 0  , 0  , 0, -d4x*s4x, -d4x*s4y],
-        [0  , 0  , 0, s4x, s4y, 1, -d4y*s4x, -d4y*s4y]
+        [s1x, s1y, 1, 0  , 0  , 0, -d1x*s1x, -d1x*s1y, -d1x],
+        [0  , 0  , 0, s1x, s1y, 1, -d1y*s1x, -d1y*s1y, -d1y],
+        [s2x, s2y, 1, 0  , 0  , 0, -d2x*s2x, -d2x*s2y, -d2x],
+        [0  , 0  , 0, s2x, s2y, 1, -d2y*s2x, -d2y*s2y, -d2y],
+        [s3x, s3y, 1, 0  , 0  , 0, -d3x*s3x, -d3x*s3y, -d3x],
+        [0  , 0  , 0, s3x, s3y, 1, -d3y*s3x, -d3y*s3y, -d3y],
+        [s4x, s4y, 1, 0  , 0  , 0, -d4x*s4x, -d4x*s4y, -d4x],
+        [0  , 0  , 0, s4x, s4y, 1, -d4y*s4x, -d4y*s4y, -d4y],
+        [0  , 0  , 0, 0  , 0  , 0,  0      , 0       , 1]
     ])
-    b = [d1x, d1y, d2x, d2y, d3x, d3y, d4x, d4y]
+    # O último número define o valor de h33. Mude-o à seu bel prazer (menos pra 0!)
+    b = [0, 0, 0, 0, 0, 0, 0, 0, 12.34]
 
-    (h11, h21, h31, h12, h22, h32, h13, h23) = np.linalg.lstsq(A, b, rcond=None)[0]
+    (h11, h12, h13, h21, h22, h23, h31, h32, h33) = np.linalg.solve(A, b)
     return np.array([
-        [h11, h21, h31],
-        [h12, h22, h32],
-        [h13, h23, 1],
+        [h11, h12, h13],
+        [h21, h22, h23],
+        [h31, h32, h33],
     ])
 
 # Aproxima um pixel via nearest-neighbour
@@ -55,7 +57,7 @@ def apply_matrix(src, dst, matrix):
             px, py, pw = np.matmul(matrix, np.array([x, y, 1]))
             # A transformação pode resultar em posições com casas decimais.
             # Usamos interpolação para calcular os pixeis em posições não-discretas
-            dst[y, x] = get_pixel(src, px/pw, py/pw)
+            dst[y, x] = get_pixel(src, (px/pw), (py/pw))
 
 
 def warp(source_image, source_points, destination_points, out_w, out_h):

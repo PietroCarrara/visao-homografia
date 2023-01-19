@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from math import floor
+from math import floor, log10, sqrt
 
 # A matrix de homografia que montamos possui oito números que temos que descobrir, e um que é constante,
 # totalizando 9 elementos em uma matriz 3x3.
@@ -68,3 +68,14 @@ def warp(source_image, source_points, destination_points, out_w, out_h):
     apply_matrix(source_image, dst, h)
 
     return dst
+
+def calculatePSNR(original, output):
+    # Calcula o erro medio quadrático entre as duas imagens
+    mse = np.mean((original - output) ** 2)
+
+    # Se MSE == 0 então não há presença de ruído
+    if(mse == 0):
+        return 100
+        
+    psnr = 20 * log10(255.0 / sqrt(mse))
+    return psnr

@@ -1,7 +1,7 @@
 import cv2
 import sys
 import numpy as np
-from main import warp
+from main import warp, calculatePSNR
 from math import floor
 
 def update_input():
@@ -47,6 +47,8 @@ def show_result():
     global src
     global src_points
 
+    original = cv2.imread(ORIGINAL)
+
     min_x = min(src_points[0][0], src_points[2][0])
     max_x = max(src_points[1][0], src_points[3][0])
     min_y = min(src_points[0][1], src_points[1][1])
@@ -68,9 +70,25 @@ def show_result():
     w, h, _ = res.shape
     scale = min(600/h, 600/w)
     size = (floor(h*scale), floor(w*scale))
-    cv2.imshow("output", cv2.resize(res, size))
+    res = cv2.resize(res, size)
+
+    src_gray_img = cv2.cvtColor(original, cv2.COLOR_BGR2GRAY)
+    src_gray_img = cv2.resize(src_gray_img, (res.shape[1], res.shape[0]), interpolation = cv2.INTER_AREA)
+    res_gray_img = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
+    psnr = calculatePSNR(src_gray_img, res_gray_img)
+
+    text = "PSNR = {psnr:.2f}".format(psnr = psnr)
+    image_psnr = cv2.putText(src_gray_img, text, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 2)
+    cv2.imshow("psnr", image_psnr)
+
+    cv2.imshow("output", res)
 
 FILENAME = "foto1_cap1.jpg" if len(sys.argv) < 2 else sys.argv[1]
+
+if "foto1" in FILENAME:
+    ORIGINAL = "./foto1_gt.jpg"
+elif "foto2" in FILENAME:
+    ORIGINAL = "./foto2_gt.jpg"
 
 src = cv2.imread(FILENAME)
 src_points = []
